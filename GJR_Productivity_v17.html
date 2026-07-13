@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang=id><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<title>GJR Productivity Dashboard v17</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel=stylesheet>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;background:#eef4fb;color:#1a2b3c}
+.ct{max-width:1300px;margin:auto;padding:0 16px}
+header{background:linear-gradient(135deg,#2b5b9e,#3a9bd4);color:#fff;padding:18px 24px}
+header h1{font-size:26px}header .sub{font-size:13px;opacity:.9}
+.badge{background:#FFB800;color:#1a2b3c;padding:6px 16px;border-radius:20px;font-weight:800;float:right}
+.uprow{float:right;clear:right;margin-top:8px;font-size:12px}
+.uprow a{color:#fff;cursor:pointer;opacity:.9;margin-left:10px}
+.note{text-align:right;font-size:12px;padding:4px 24px;min-height:20px}
+.note.ok{color:#0a7d3c}.note.gr{color:#8a97a6}.note.bad{color:#c0392b}
+.fbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+.fbar select,.wd input,input[type=text]{padding:7px 10px;border:1px solid #cbd6e2;border-radius:8px;font-size:13px}
+.btn{background:#FFB800;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer}
+.tabs{display:flex;gap:8px;position:sticky;top:0;background:#eef4fb;padding:10px 0;z-index:10;flex-wrap:wrap}
+.tab{padding:9px 18px;border-radius:22px;border:1px solid #2b6cb0;background:#fff;cursor:pointer;font-weight:600;font-size:14px}
+.tab.on{background:#2b6cb0;color:#fff}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px #0000000d;padding:16px;margin:12px 0;border-left:4px solid #2b6cb0}
+.stdhead{display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none}
+.stdhead .ttl{font-size:17px;font-weight:700}
+.wd{display:flex;align-items:center;gap:8px;font-size:14px;margin-left:auto;cursor:default}
+.wd input{width:64px}
+.cv{margin-right:6px;transition:transform .2s}
+.kpis{display:flex;gap:10px;overflow-x:auto;padding:4px 0}
+.kpi{flex:1;min-width:140px;background:#fff;border-radius:14px;box-shadow:0 2px 10px #0000000d;padding:14px;border-left:4px solid #2b6cb0}
+.kpi .l{font-size:12px;color:#5a6b7c}.kpi .v{font-size:26px;font-weight:800;color:#2b6cb0;margin:2px 0}.kpi .t{font-size:11px;color:#8a97a6}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:13px}
+th{background:linear-gradient(135deg,#2b5b9e,#3a9bd4);color:#fff;padding:9px;text-align:left}
+td{padding:7px 9px;border-bottom:1px solid #eef}
+tr:hover td{background:#f6faff}
+.ok{color:#10b981;font-weight:600}.bad{color:#ef4444;font-weight:600}.wn{color:#f59e0b;font-weight:600}
+.stdtbl input{width:60px;padding:4px;border:1px solid #cbd6e2;border-radius:6px}
+.pill{padding:6px 13px;border-radius:16px;border:1px solid #2b6cb0;background:#fff;cursor:pointer;font-size:13px}
+.pill.on{background:#2b6cb0;color:#fff}
+.pg{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:13px}
+.pg button{padding:6px 12px;border-radius:8px;border:1px solid #2b6cb0;background:#fff;cursor:pointer}
+.pg button:disabled{opacity:.4;cursor:default}
+.hide{display:none}
+canvas{max-height:280px}
+.panel{display:flex;gap:12px;flex-wrap:wrap}
+.pbox{flex:1;min-width:220px;background:#f6faff;border-radius:10px;padding:12px}
+.pbox .r{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px dashed #dbe6f2}
+.stat{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.sc{background:#fee;color:#c0392b}.sw{background:#fef3d7;color:#a86a00}.sg{background:#e3f9ee;color:#0a7d3c}
+@media(prefers-color-scheme:dark){body{background:#0f1b2a;color:#dce}.card,.kpi,table,.pbox{background:#16263a;color:#dce}.tabs{background:#0f1b2a}.tab{background:#16263a}.pbox{background:#1c2f45}}</style></head><body>
+<header><div class=ct><span class=badge>GJR</span><h1>GJR Productivity Dashboard</h1><div class=sub>MSR Salesman Analytics — GJR · v17</div>
+<div class=uprow><a onclick="document.getElementById('fu').click()">📁 Upload</a><a onclick="tryFetch()">🔄 Reload</a><input type=file id=fu accept=.xlsx,.xls,.csv style=display:none onchange="if(this.files[0])handleFile(this.files[0])"></div></div></header>
+<div class=note id=note></div>
+<div class=ct>
+<div class=fbar>
+<select id=fArea></select><select id=fHoA></select><select id=fDist></select>
+<label><input type=checkbox id=fMSR checked> MSR Only</label>
+<button class=btn onclick="document.getElementById('fArea').value='';document.getElementById('fHoA').value='';document.getElementById('fDist').value='';sw(TAB)">Reset</button>
+<button class=btn onclick="loadSample()">Load Sample</button>
+</div>
+<div class=tabs>
+<div class=tab onclick=sw(0)>📊 Productivity Salesman</div>
+<div class=tab onclick=sw(1)>📗 By HoA</div>
+<div class=tab onclick=sw(2)>📍 Outlet belum EE</div>
+<div class=tab onclick=sw(3)>🎯 EE/Hipos belum JP</div>
+</div>
+
+<div id=t1w>
+<div class=card>
+<div class=stdhead onclick=toggleStd()><span class=cv id=cv>▶</span><span class=ttl>⚙️ Standard by Salesman Type</span>
+<span class=wd onclick="event.stopPropagation()">Working Days: <input id=wd value=22></span></div>
+<div id=stdTableWrap class=hide style=margin-top:12px>
+<table class=stdtbl><tr><th>Type</th><th>Target AC/Day</th><th>Target EC/Day</th><th>Target Outlet</th><th>%EC Thr</th></tr><tr><td>SMC</td><td><input id=s_SMC_ac value=25></td><td><input id=s_SMC_ec value=18></td><td><input id=s_SMC_out value=250></td><td><input id=s_SMC_th value=80></td></tr><tr><td>SRO</td><td><input id=s_SRO_ac value=25></td><td><input id=s_SRO_ec value=18></td><td><input id=s_SRO_out value=250></td><td><input id=s_SRO_th value=80></td></tr><tr><td>SDP</td><td><input id=s_SDP_ac value=25></td><td><input id=s_SDP_ec value=18></td><td><input id=s_SDP_out value=250></td><td><input id=s_SDP_th value=80></td></tr><tr><td>STS</td><td><input id=s_STS_ac value=25></td><td><input id=s_STS_ec value=18></td><td><input id=s_STS_out value=250></td><td><input id=s_STS_th value=80></td></tr><tr><td>TVS</td><td><input id=s_TVS_ac value=25></td><td><input id=s_TVS_ec value=18></td><td><input id=s_TVS_out value=250></td><td><input id=s_TVS_th value=80></td></tr><tr><td>MTS</td><td><input id=s_MTS_ac value=9></td><td><input id=s_MTS_ec value=6></td><td><input id=s_MTS_out value=54></td><td><input id=s_MTS_th value=75></td></tr><tr><td>B2B</td><td><input id=s_B2B_ac value=9></td><td><input id=s_B2B_ec value=6></td><td><input id=s_B2B_out value=54></td><td><input id=s_B2B_th value=75></td></tr><tr><td>WHS</td><td><input id=s_WHS_ac value=14></td><td><input id=s_WHS_ec value=10></td><td><input id=s_WHS_out value=84></td><td><input id=s_WHS_th value=75></td></tr><tr><td>TFR</td><td><input id=s_TFR_ac value=30></td><td><input id=s_TFR_ec value=21></td><td><input id=s_TFR_out value=300></td><td><input id=s_TFR_th value=70></td></tr><tr><td>TFA</td><td><input id=s_TFA_ac value=30></td><td><input id=s_TFA_ec value=20></td><td><input id=s_TFA_out value=180></td><td><input id=s_TFA_th value=70></td></tr></table>
+</div></div>
+<div class=kpis id=kp></div>
+<div class=card><b>% AC &amp; % EC per HoA</b><canvas id=cM></canvas></div>
+<div class=card><table id=t1></table></div>
+</div>
+
+<div id=t2w class=hide>
+<div class=card><label>Pilih HoA: <select id=h2></select></label></div>
+<div class=card><div class=panel><div class=pbox><b>Performa MSR</b><div id=pMSR></div></div><div class=pbox><b>Call Effectiveness</b><div id=pCE></div></div></div></div>
+<div class=card>
+<div style=display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px>
+<span class="pill on" data-p=All>All</span><span class=pill data-p=Critical>Critical</span><span class=pill data-p=Warning>Warning</span><span class="pill" data-p="On Track">On Track</span>
+<select id=tF></select><input type=text id=smS placeholder="Cari nama/kode...">
+<button class=btn onclick=eSM()>⬇ Export CSV</button></div>
+<div style=overflow-x:auto><table id=t2></table></div>
+<div class=card id=cch style=margin-top:12px></div></div>
+</div>
+
+<div id=t3w class=hide>
+<div class=kpis><div class=kpi><div class=l>Total Belum EE</div><div class=v id=k3a>0</div></div><div class=kpi><div class=l>Total Active (JP)</div><div class=v id=k3b>0</div></div><div class=kpi><div class=l>Gap %</div><div class=v id=k3c>0%</div></div></div>
+<div class=card>
+<div style=display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px>
+<label><input type=radio name=g3 value=Area checked> by Area</label><label><input type=radio name=g3 value=Distributor> by Distributor</label>
+<select id=d3></select><input type=text id=s3 placeholder="Cari outlet...">
+<button class=btn onclick=e3()>⬇ Export CSV</button></div>
+<canvas id=c3></canvas>
+<div style=overflow-x:auto;margin-top:12px><table id=t3></table></div>
+<div class=pg id=pg3></div></div>
+</div>
+
+<div id=t4w class=hide>
+<div class=kpis><div class=kpi><div class=l>EE belum JP</div><div class=v id=k4a>0</div></div><div class=kpi><div class=l>Hipos belum JP</div><div class=v id=k4b>0</div></div><div class=kpi><div class=l>Total Gap</div><div class=v id=k4c>0</div></div></div>
+<div class=card>
+<div style=display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px>
+<label><input type=radio name=g4 value=Area checked> by Area</label><label><input type=radio name=g4 value=Distributor> by Distributor</label>
+<select id=d4></select><input type=text id=s4 placeholder="Cari outlet...">
+<button class=btn onclick=e4()>⬇ Export CSV</button></div>
+<canvas id=c4></canvas>
+<div style=overflow-x:auto;margin-top:12px><table id=t4></table></div>
+<div class=pg id=pg4></div></div>
+</div>
+
+</div>
+<script>const HOA=[["Abdul Hafiz", "Banten Area", 8, 1764, 167, 388, 386, 0.99, 170, 0.44], ["Aries Widhiarto", "Jaksel-Depok Area", 7, 1680, 523, 582, 514, 0.88, 409, 0.8], ["Dian Febrina", "Bogor Area", 6, 828, 52, 208, 126, 0.61, 48, 0.38], ["Erwin Adimas", "Tangerang Area", 16, 3888, 1415, 1336, 1336, 1.0, 1121, 0.84], ["Georgius Darren", "Jaksel-Depok Area", 8, 1920, 667, 752, 656, 0.87, 596, 0.91], ["Harris Firmansyah", "Jaktim Area", 11, 2328, 423, 764, 682, 0.89, 435, 0.64], ["Ibnu Farras", "Jaktim Area", 7, 1494, 0, 96, 74, 0.77, 33, 0.45], ["Iwan Dwiarsono", "Bogor Area", 15, 3600, 153, 1352, 1194, 0.88, 145, 0.12], ["Izzuar Mahendra", "Banten Area", 7, 1278, 100, 176, 176, 1.0, 88, 0.5], ["Muthiah Salsabila", "B2B GJR", 3, 408, 179, 181, 180, 0.99, 151, 0.84], ["Nabilah Putri", "Jakbar Area", 8, 2100, 526, 599, 526, 0.88, 519, 0.99], ["Radifan Athallah", "Jaktim Area", 17, 3492, 200, 340, 270, 0.79, 258, 0.96], ["Robby Abriyan", "B2B GJR", 11, 2268, 736, 857, 824, 0.96, 594, 0.72], ["Subiyanto", "Jakbar Area", 8, 1920, 446, 466, 426, 0.91, 456, 1.07]],EE=[["B2B GJR", 185, 1076], ["Banten Area", 359, 3640], ["Bekasi Area", 701, 3569], ["Bogor Area", 0, 5599], ["Jakbar Area", 948, 4251], ["Jaksel-Depok Area", 1974, 10521], ["Jaktim Area", 408, 3762], ["Tangerang Area", 1373, 4859]],AT={"B2B GJR": 210, "Banten Area": 420, "Bekasi Area": 780, "Bogor Area": 60, "Jakbar Area": 1050, "Jaksel-Depok Area": 2180, "Jaktim Area": 470, "Tangerang Area": 1490},STD0={"SMC": [25, 18, 250, 80], "SRO": [25, 18, 250, 80], "SDP": [25, 18, 250, 80], "STS": [25, 18, 250, 80], "TVS": [25, 18, 250, 80], "MTS": [9, 6, 54, 75], "B2B": [9, 6, 54, 75], "WHS": [14, 10, 84, 75], "TFR": [30, 21, 300, 70], "TFA": [30, 20, 180, 70]},SM=[["6137485_MTS01", "Eka", "MTS", "Erwin Adimas", "Tangerang Area", 54, 4, 0.08, 198, 157, 87], ["6137485_SMC002", "Muhlani", "SMC", "Erwin Adimas", "Tangerang Area", 250, 65, 0.26, 550, 492, 260], ["6137485_SMC003", "Sahron", "SMC", "Erwin Adimas", "Tangerang Area", 250, 50, 0.2, 550, 473, 305], ["6137485_TFC001", "ERNIAWATI", "TFA", "Erwin Adimas", "Tangerang Area", 180, 149, 0.83, 660, 473, 332], ["6137485_WHS01", "Dessy", "WHS", "Erwin Adimas", "Tangerang Area", 84, 26, 0.32, 308, 219, 147], ["6137485_TFR05", "Faratama", "TFR", "Erwin Adimas", "Tangerang Area", 300, 159, 0.53, 660, 475, 254], ["6137485_TFR06", "Insani", "TFR", "Erwin Adimas", "Tangerang Area", 300, 150, 0.5, 660, 546, 453], ["6137485_WHS02", "Windika", "WHS", "Erwin Adimas", "Tangerang Area", 84, 22, 0.27, 308, 227, 133], ["6137485_SMC01", "Wahyu", "SMC", "Erwin Adimas", "Tangerang Area", 250, 42, 0.17, 550, 488, 428], ["6137485_SMC005", "Dede Kurnia", "SMC", "Erwin Adimas", "Tangerang Area", 250, 75, 0.3, 550, 480, 316], ["6137485_TFR07", "Rizky Bastiansyah", "TFR", "Erwin Adimas", "Tangerang Area", 300, 129, 0.43, 660, 655, 339], ["6137485_TFR08", "Bahtera Dwi Prayogi", "TFR", "Erwin Adimas", "Tangerang Area", 300, 162, 0.54, 660, 631, 388], ["6137485_SMC0003", "Roisun", "SMC", "Erwin Adimas", "Tangerang Area", 250, 70, 0.28, 550, 408, 223], ["6137485_SMC006", "Rinaldi Riswanto", "SMC", "Erwin Adimas", "Tangerang Area", 250, 45, 0.18, 550, 435, 359], ["6137485_TFR09", "Alan", "TFR", "Erwin Adimas", "Tangerang Area", 300, 144, 0.48, 660, 497, 364], ["6137485_TFR10", "Dido Bebito", "TFR", "Erwin Adimas", "Tangerang Area", 300, 111, 0.37, 660, 588, 381], ["2053424_STS1", "Ahmad A", "STS", "Abdul Hafiz", "Banten Area", 250, 95, 0.38, 550, 425, 304], ["8811503_WHS2", "Budi B", "WHS", "Abdul Hafiz", "Banten Area", 84, 47, 0.56, 308, 250, 169], ["5167906_B2B3", "Citra C", "B2B", "Abdul Hafiz", "Banten Area", 54, 43, 0.8, 198, 130, 95], ["9306674_STS4", "Dewi D", "STS", "Abdul Hafiz", "Banten Area", 250, 80, 0.32, 550, 519, 422], ["2228106_B2B5", "Eko E", "B2B", "Abdul Hafiz", "Banten Area", 54, 48, 0.89, 198, 176, 92], ["8074924_TFA6", "Fajar F", "TFA", "Abdul Hafiz", "Banten Area", 180, 156, 0.87, 660, 374, 293], ["6263809_STS7", "Gita G", "STS", "Abdul Hafiz", "Banten Area", 250, 142, 0.57, 550, 425, 360], ["2570280_SRO8", "Hadi H", "SRO", "Abdul Hafiz", "Banten Area", 250, 222, 0.89, 550, 536, 368], ["2017864_SRO1", "Indah A", "SRO", "Aries Widhiarto", "Jaksel-Depok Area", 250, 152, 0.61, 550, 445, 351], ["5774720_TFA2", "Joko B", "TFA", "Aries Widhiarto", "Jaksel-Depok Area", 180, 77, 0.43, 660, 575, 513], ["1378543_WHS3", "Kiki C", "WHS", "Aries Widhiarto", "Jaksel-Depok Area", 84, 72, 0.86, 308, 254, 176], ["5822307_MTS4", "Lina D", "MTS", "Aries Widhiarto", "Jaksel-Depok Area", 54, 29, 0.55, 198, 120, 68], ["9330000_TFR5", "Maman E", "TFR", "Aries Widhiarto", "Jaksel-Depok Area", 300, 264, 0.88, 660, 526, 469], ["5671130_TFR6", "Nina F", "TFR", "Aries Widhiarto", "Jaksel-Depok Area", 300, 231, 0.77, 660, 572, 539], ["4871367_TFR7", "Oki G", "TFR", "Aries Widhiarto", "Jaksel-Depok Area", 300, 219, 0.73, 660, 431, 244], ["4059205_TFA1", "Putri A", "TFA", "Dian Febrina", "Bogor Area", 180, 113, 0.63, 660, 441, 199], ["9968948_TFR2", "Rian B", "TFR", "Dian Febrina", "Bogor Area", 300, 84, 0.28, 660, 646, 513], ["1905850_STS3", "Sari C", "STS", "Dian Febrina", "Bogor Area", 250, 185, 0.74, 550, 415, 367], ["7583025_STS4", "Tono D", "STS", "Dian Febrina", "Bogor Area", 250, 75, 0.3, 550, 421, 273], ["2129905_MTS5", "Umar E", "MTS", "Dian Febrina", "Bogor Area", 54, 35, 0.65, 198, 196, 131], ["6705153_SRO6", "Vina F", "SRO", "Dian Febrina", "Bogor Area", 250, 102, 0.41, 550, 442, 317], ["1427833_WHS1", "Wawan A", "WHS", "Georgius Darren", "Jaksel-Depok Area", 84, 47, 0.57, 308, 179, 99], ["3492263_TFR2", "Yani B", "TFR", "Georgius Darren", "Jaksel-Depok Area", 300, 66, 0.22, 660, 541, 371], ["9188423_SRO3", "Zaki C", "SRO", "Georgius Darren", "Jaksel-Depok Area", 250, 42, 0.17, 550, 548, 374], ["6232013_TFA4", "Bayu D", "TFA", "Georgius Darren", "Jaksel-Depok Area", 180, 131, 0.73, 660, 464, 270], ["9662655_SDP5", "Cakra E", "SDP", "Georgius Darren", "Jaksel-Depok Area", 250, 172, 0.69, 550, 308, 285], ["7069199_STS6", "Dian F", "STS", "Georgius Darren", "Jaksel-Depok Area", 250, 205, 0.82, 550, 309, 220], ["5380786_SRO7", "Endah G", "SRO", "Georgius Darren", "Jaksel-Depok Area", 250, 220, 0.88, 550, 430, 388], ["4737842_WHS8", "Ferry H", "WHS", "Georgius Darren", "Jaksel-Depok Area", 84, 17, 0.21, 308, 215, 120], ["5016258_MTS1", "Gina A", "MTS", "Harris Firmansyah", "Jaktim Area", 54, 30, 0.56, 198, 181, 148], ["4354067_MTS2", "Ahmad B", "MTS", "Harris Firmansyah", "Jaktim Area", 54, 22, 0.41, 198, 111, 51], ["8922873_B2B3", "Budi C", "B2B", "Harris Firmansyah", "Jaktim Area", 54, 33, 0.62, 198, 131, 104], ["8503235_WHS4", "Citra D", "WHS", "Harris Firmansyah", "Jaktim Area", 84, 66, 0.79, 308, 217, 203], ["4698744_SRO5", "Dewi E", "SRO", "Harris Firmansyah", "Jaktim Area", 250, 67, 0.27, 550, 327, 224], ["4428816_WHS6", "Eko F", "WHS", "Harris Firmansyah", "Jaktim Area", 84, 1, 0.02, 308, 253, 114], ["2422346_WHS7", "Fajar G", "WHS", "Harris Firmansyah", "Jaktim Area", 84, 60, 0.72, 308, 285, 145], ["4344024_TFR8", "Gita H", "TFR", "Harris Firmansyah", "Jaktim Area", 300, 147, 0.49, 660, 597, 367], ["8770544_TFR9", "Hadi I", "TFR", "Harris Firmansyah", "Jaktim Area", 300, 201, 0.67, 660, 482, 445], ["3852188_SDP10", "Indah J", "SDP", "Harris Firmansyah", "Jaktim Area", 250, 175, 0.7, 550, 448, 305], ["8958388_SDP11", "Joko K", "SDP", "Harris Firmansyah", "Jaktim Area", 250, 160, 0.64, 550, 465, 290], ["3197544_STS1", "Kiki A", "STS", "Ibnu Farras", "Jaktim Area", 250, 257, 1.03, 550, 482, 241], ["8278114_SDP2", "Lina B", "SDP", "Ibnu Farras", "Jaktim Area", 250, 162, 0.65, 550, 546, 298], ["1469656_MTS3", "Maman C", "MTS", "Ibnu Farras", "Jaktim Area", 54, 31, 0.58, 198, 130, 96], ["8029864_B2B4", "Nina D", "B2B", "Ibnu Farras", "Jaktim Area", 54, 42, 0.79, 198, 183, 87], ["8686665_WHS5", "Oki E", "WHS", "Ibnu Farras", "Jaktim Area", 84, 28, 0.34, 308, 241, 208], ["3193843_STS6", "Putri F", "STS", "Ibnu Farras", "Jaktim Area", 250, 47, 0.19, 550, 434, 308], ["8384070_SMC7", "Rian G", "SMC", "Ibnu Farras", "Jaktim Area", 250, 160, 0.64, 550, 494, 259], ["8943893_SDP1", "Sari A", "SDP", "Iwan Dwiarsono", "Bogor Area", 250, 75, 0.3, 550, 455, 232], ["6469072_SMC2", "Tono B", "SMC", "Iwan Dwiarsono", "Bogor Area", 250, 127, 0.51, 550, 421, 352], ["1953324_STS3", "Umar C", "STS", "Iwan Dwiarsono", "Bogor Area", 250, 90, 0.36, 550, 364, 214], ["9518027_SRO4", "Vina D", "SRO", "Iwan Dwiarsono", "Bogor Area", 250, 145, 0.58, 550, 523, 251], ["9481774_WHS5", "Wawan E", "WHS", "Iwan Dwiarsono", "Bogor Area", 84, 55, 0.66, 308, 253, 139], ["8589103_B2B6", "Yani F", "B2B", "Iwan Dwiarsono", "Bogor Area", 54, 10, 0.19, 198, 154, 88], ["5355235_STS7", "Zaki G", "STS", "Iwan Dwiarsono", "Bogor Area", 250, 155, 0.62, 550, 530, 475], ["8508277_MTS8", "Bayu H", "MTS", "Iwan Dwiarsono", "Bogor Area", 54, 38, 0.72, 198, 148, 71], ["8186330_MTS9", "Cakra I", "MTS", "Iwan Dwiarsono", "Bogor Area", 54, 39, 0.74, 198, 115, 90], ["3591184_SRO10", "Dian J", "SRO", "Iwan Dwiarsono", "Bogor Area", 250, 242, 0.97, 550, 393, 226], ["8847305_SDP11", "Endah K", "SDP", "Iwan Dwiarsono", "Bogor Area", 250, 127, 0.51, 550, 356, 329], ["9174879_TFR12", "Ferry L", "TFR", "Iwan Dwiarsono", "Bogor Area", 300, 249, 0.83, 660, 429, 344], ["7774803_STS13", "Gina M", "STS", "Iwan Dwiarsono", "Bogor Area", 250, 240, 0.96, 550, 386, 211], ["2546759_WHS14", "Ahmad N", "WHS", "Iwan Dwiarsono", "Bogor Area", 84, 52, 0.63, 308, 246, 164], ["7448231_SMC15", "Budi O", "SMC", "Iwan Dwiarsono", "Bogor Area", 250, 147, 0.59, 550, 384, 292], ["2078620_STS1", "Citra A", "STS", "Izzuar Mahendra", "Banten Area", 250, 275, 1.1, 550, 359, 318], ["5455429_SRO2", "Dewi B", "SRO", "Izzuar Mahendra", "Banten Area", 250, 265, 1.06, 550, 369, 333], ["5537332_SDP3", "Eko C", "SDP", "Izzuar Mahendra", "Banten Area", 250, 180, 0.72, 550, 512, 403], ["7810674_B2B4", "Fajar D", "B2B", "Izzuar Mahendra", "Banten Area", 54, 12, 0.24, 198, 122, 110], ["9298213_TVS5", "Gita E", "TVS", "Izzuar Mahendra", "Banten Area", 250, 167, 0.67, 550, 316, 250], ["2214906_TFR6", "Hadi F", "TFR", "Izzuar Mahendra", "Banten Area", 300, 180, 0.6, 660, 442, 202], ["5371335_SRO7", "Indah G", "SRO", "Izzuar Mahendra", "Banten Area", 250, 275, 1.1, 550, 318, 280], ["1193715_TFA1", "Joko A", "TFA", "Muthiah Salsabila", "B2B GJR", 180, 169, 0.94, 660, 463, 336], ["3168032_B2B2", "Kiki B", "B2B", "Muthiah Salsabila", "B2B GJR", 54, 57, 1.07, 198, 192, 179], ["1845231_B2B3", "Lina C", "B2B", "Muthiah Salsabila", "B2B GJR", 54, 43, 0.8, 198, 125, 114], ["9910141_B2B1", "Maman A", "B2B", "Nabilah Putri", "Jakbar Area", 54, 35, 0.65, 198, 153, 82], ["1304726_WHS2", "Nina B", "WHS", "Nabilah Putri", "Jakbar Area", 84, 36, 0.43, 308, 307, 143], ["9483466_SMC3", "Oki C", "SMC", "Nabilah Putri", "Jakbar Area", 250, 122, 0.49, 550, 420, 385], ["8250736_SRO4", "Putri D", "SRO", "Nabilah Putri", "Jakbar Area", 250, 147, 0.59, 550, 464, 335], ["9500779_TFR5", "Rian E", "TFR", "Nabilah Putri", "Jakbar Area", 300, 174, 0.58, 660, 431, 236], ["7789700_SDP6", "Sari F", "SDP", "Nabilah Putri", "Jakbar Area", 250, 200, 0.8, 550, 547, 514], ["1239161_SDP7", "Tono G", "SDP", "Nabilah Putri", "Jakbar Area", 250, 252, 1.01, 550, 365, 194], ["7390135_SRO8", "Umar H", "SRO", "Nabilah Putri", "Jakbar Area", 250, 205, 0.82, 550, 517, 405], ["5063658_B2B1", "Vina A", "B2B", "Radifan Athallah", "Jaktim Area", 54, 30, 0.57, 198, 125, 73], ["5416485_SMC2", "Wawan B", "SMC", "Radifan Athallah", "Jaktim Area", 250, 130, 0.52, 550, 392, 240], ["6427998_STS3", "Yani C", "STS", "Radifan Athallah", "Jaktim Area", 250, 155, 0.62, 550, 379, 238], ["6625950_SMC4", "Zaki D", "SMC", "Radifan Athallah", "Jaktim Area", 250, 275, 1.1, 550, 396, 272], ["4371885_STS5", "Bayu E", "STS", "Radifan Athallah", "Jaktim Area", 250, 150, 0.6, 550, 324, 278], ["7702685_SDP6", "Cakra F", "SDP", "Radifan Athallah", "Jaktim Area", 250, 257, 1.03, 550, 447, 289], ["6104376_B2B7", "Dian G", "B2B", "Radifan Athallah", "Jaktim Area", 54, 28, 0.52, 198, 194, 170], ["7535001_SDP8", "Endah H", "SDP", "Radifan Athallah", "Jaktim Area", 250, 130, 0.52, 550, 491, 397], ["3507575_TFA9", "Ferry I", "TFA", "Radifan Athallah", "Jaktim Area", 180, 93, 0.52, 660, 405, 349], ["8201531_STS10", "Gina J", "STS", "Radifan Athallah", "Jaktim Area", 250, 232, 0.93, 550, 484, 414], ["9787189_SDP11", "Ahmad K", "SDP", "Radifan Athallah", "Jaktim Area", 250, 150, 0.6, 550, 503, 230], ["4857765_TVS12", "Budi L", "TVS", "Radifan Athallah", "Jaktim Area", 250, 67, 0.27, 550, 323, 152], ["2760206_WHS13", "Citra M", "WHS", "Radifan Athallah", "Jaktim Area", 84, 33, 0.4, 308, 176, 80], ["5103030_STS14", "Dewi N", "STS", "Radifan Athallah", "Jaktim Area", 250, 197, 0.79, 550, 423, 191], ["9438453_SRO15", "Eko O", "SRO", "Radifan Athallah", "Jaktim Area", 250, 170, 0.68, 550, 432, 355], ["5231105_TFA16", "Fajar P", "TFA", "Radifan Athallah", "Jaktim Area", 180, 95, 0.53, 660, 603, 526], ["4442978_MTS17", "Gita Q", "MTS", "Radifan Athallah", "Jaktim Area", 54, 34, 0.64, 198, 149, 130], ["9036456_SRO1", "Hadi A", "SRO", "Robby Abriyan", "B2B GJR", 250, 260, 1.04, 550, 527, 312], ["4326756_SMC2", "Indah B", "SMC", "Robby Abriyan", "B2B GJR", 250, 200, 0.8, 550, 365, 299], ["3238768_B2B3", "Joko C", "B2B", "Robby Abriyan", "B2B GJR", 54, 40, 0.75, 198, 110, 52], ["2669652_B2B4", "Kiki D", "B2B", "Robby Abriyan", "B2B GJR", 54, 29, 0.55, 198, 134, 94], ["8816464_TFA5", "Lina E", "TFA", "Robby Abriyan", "B2B GJR", 180, 59, 0.33, 660, 501, 255], ["4342860_STS6", "Maman F", "STS", "Robby Abriyan", "B2B GJR", 250, 160, 0.64, 550, 419, 249], ["9499648_SRO7", "Nina G", "SRO", "Robby Abriyan", "B2B GJR", 250, 195, 0.78, 550, 542, 365], ["7490238_B2B8", "Oki H", "B2B", "Robby Abriyan", "B2B GJR", 54, 44, 0.83, 198, 127, 94], ["9792363_SDP9", "Putri I", "SDP", "Robby Abriyan", "B2B GJR", 250, 275, 1.1, 550, 367, 231], ["9535313_TVS10", "Rian J", "TVS", "Robby Abriyan", "B2B GJR", 250, 165, 0.66, 550, 392, 273], ["7611574_TFA11", "Sari K", "TFA", "Robby Abriyan", "B2B GJR", 180, 144, 0.8, 660, 370, 167], ["8562502_TFA1", "Tono A", "TFA", "Subiyanto", "Jakbar Area", 180, 57, 0.32, 660, 486, 310], ["6558700_SRO2", "Umar B", "SRO", "Subiyanto", "Jakbar Area", 250, 220, 0.88, 550, 302, 249], ["3013959_TFR3", "Vina C", "TFR", "Subiyanto", "Jakbar Area", 300, 243, 0.81, 660, 366, 300], ["7244848_B2B4", "Wawan D", "B2B", "Subiyanto", "Jakbar Area", 54, 31, 0.59, 198, 114, 73], ["2281790_TVS5", "Yani E", "TVS", "Subiyanto", "Jakbar Area", 250, 122, 0.49, 550, 370, 175], ["1865998_SRO6", "Zaki F", "SRO", "Subiyanto", "Jakbar Area", 250, 215, 0.86, 550, 509, 301], ["5182974_SDP7", "Bayu G", "SDP", "Subiyanto", "Jakbar Area", 250, 230, 0.92, 550, 380, 317], ["1486729_TFR8", "Cakra H", "TFR", "Subiyanto", "Jakbar Area", 300, 183, 0.61, 660, 604, 462]],BE=[["Grtr Jakarta", "Bogor Area", "PT Indoraya Sukses Sejati", "001830070", "Outlet 0", "Gina", "Radifan Athallah", 0], ["Grtr Jakarta", "Jaktim Area", "PT Triputra Megah Perkasa", "003324861", "Outlet 1", "Vina", "Subiyanto", 0], ["Grtr Jakarta", "Jakbar Area", "PT Triputra Megah Perkasa", "001821696", "Outlet 2", "Gina", "Izzuar Mahendra", 0], ["Grtr Jakarta", "Bekasi Area", "PT Bintang Bunut", "008921934", "Outlet 3", "Nina", "Harris Firmansyah", 0], ["Grtr Jakarta", "Jakbar Area", "PT Trimulya Jaya Sejahtera", "005290651", "Outlet 4", "Zaki", "Radifan Athallah", 0], ["Grtr Jakarta", "Jakbar Area", "PT Solusi Arta Jaya", "005004134", "Outlet 5", "Joko", "Iwan Dwiarsono", 0], ["Grtr Jakarta", "Jaktim Area", "PT Indoraya Sukses Sejati", "003807372", "Outlet 6", "Vina", "Dian Febrina", 0], ["Grtr Jakarta", "Banten Area", "PT Multi Rasa Citra Sejati", "009398754", "Outlet 7", "Ferry", "Robby Abriyan", 0], ["Grtr Jakarta", "Tangerang Area", "PT Multi Rasa Citra Sejati", "008599845", "Outlet 8", "Gina", "Harris Firmansyah", 0], ["Grtr Jakarta", "Tangerang Area", "PT Solusi Arta Jaya", "003342033", "Outlet 9", "Sari", "Erwin Adimas", 0], ["Grtr Jakarta", "Bogor Area", "PT Indoraya Sukses Sejati", "003930897", "Outlet 10", "Kiki", "Izzuar Mahendra", 0], ["Grtr Jakarta", "Banten Area", "PT Dinamis Artha Sukses", "005011878", "Outlet 11", "Lina", "Georgius Darren", 0], ["Grtr Jakarta", "Bogor Area", "PT Balina Agung Perkasa", "007925327", "Outlet 12", "Maman", "Ibnu Farras", 0], ["Grtr Jakarta", "Bogor Area", "PT Solusi Arta Jaya", "005533872", "Outlet 13", "Kiki", "Robby Abriyan", 0], ["Grtr Jakarta", "B2B GJR", "PT Triputra Megah Perkasa", "005655951", "Outlet 14", "Tono", "Harris Firmansyah", 0], ["Grtr Jakarta", "Bekasi Area", "PT Multi Rasa Citra Sejati", "002553539", "Outlet 15", "Indah", "Erwin Adimas", 0], ["Grtr Jakarta", "Jaktim Area", "PT Solusi Arta Jaya", "008480262", "Outlet 16", "Nina", "Georgius Darren", 0], ["Grtr Jakarta", "B2B GJR", "PT Bintang Bunut", "001540956", "Outlet 17", "Nina", "Radifan Athallah", 0], ["Grtr Jakarta", "Tangerang Area", "PT Triputra Megah Perkasa", "001002997", "Outlet 18", "Citra", "Ibnu Farras", 0], ["Grtr Jakarta", "Tangerang Area", "PT Triputra Megah Perkasa", "005168555", "Outlet 19", "Cakra", "Aries Widhiarto", 0], ["Grtr Jakarta", "Bogor Area", "PT Bintang Bunut", "003551281", "Outlet 20", "Rian", "Nabilah Putri", 0], ["Grtr Jakarta", "Banten Area", "PT Triputra Megah Perkasa", "002426120", "Outlet 21", "Sari", "Robby Abriyan", 0], ["Grtr Jakarta", "B2B GJR", "PT Balina Agung Perkasa", "003108086", "Outlet 22", "Hadi", "Muthiah Salsabila", 0], ["Grtr Jakarta", "B2B GJR", "PT Trimulya Jaya Sejahtera", "003146927", "Outlet 23", "Vina", "Georgius Darren", 0], ["Grtr Jakarta", "Jaktim Area", "PT Indoraya Sukses Sejati", "002668406", "Outlet 24", "Citra", "Georgius Darren", 0], ["Grtr Jakarta", "Bogor Area", "PT Solusi Arta Jaya", "005376871", "Outlet 25", "Hadi", "Robby Abriyan", 0], ["Grtr Jakarta", "B2B GJR", "PT Balina Agung Perkasa", "006058687", "Outlet 26", "Oki", "Georgius Darren", 0], ["Grtr Jakarta", "Jaksel-Depok Area", "PT Multi Rasa Citra Sejati", "008974281", "Outlet 27", "Rian", "Erwin Adimas", 0], ["Grtr Jakarta", "Bogor Area", "PT Balina Agung Perkasa", "007909027", "Outlet 28", "Yani", "Nabilah Putri", 0], ["Grtr Jakarta", "Jakbar Area", "PT Balina Agung Perkasa", "001365531", "Outlet 29", "Gita", "Iwan Dwiarsono", 0]],BJ=[["Hipos", "Banten Area", "PT Trimulya Jaya Sejahtera", "004822529", "Outlet 0", "Nabilah Putri"], ["Hipos", "Jaksel-Depok Area", "PT Multi Rasa Citra Sejati", "009270218", "Outlet 1", "Abdul Hafiz"], ["Hipos", "Jaktim Area", "PT Dinamis Artha Sukses", "007649787", "Outlet 2", "Erwin Adimas"], ["EagleEyes", "Jakbar Area", "PT Indoraya Sukses Sejati", "004442996", "Outlet 3", "Iwan Dwiarsono"], ["EagleEyes", "Jakbar Area", "PT Multi Rasa Citra Sejati", "004872329", "Outlet 4", "Iwan Dwiarsono"], ["EagleEyes", "Jakbar Area", "PT Trimulya Jaya Sejahtera", "002828851", "Outlet 5", "Muthiah Salsabila"], ["Hipos", "Bekasi Area", "PT Multi Rasa Citra Sejati", "009137834", "Outlet 6", "Ibnu Farras"], ["EagleEyes", "Bekasi Area", "PT Solusi Arta Jaya", "001911982", "Outlet 7", "Erwin Adimas"], ["EagleEyes", "Bekasi Area", "PT Solusi Arta Jaya", "001869739", "Outlet 8", "Radifan Athallah"], ["EagleEyes", "Bekasi Area", "PT Solusi Arta Jaya", "008543740", "Outlet 9", "Radifan Athallah"], ["Hipos", "Banten Area", "PT Indoraya Sukses Sejati", "003778873", "Outlet 10", "Harris Firmansyah"], ["EagleEyes", "Bekasi Area", "PT Triputra Megah Perkasa", "001535087", "Outlet 11", "Georgius Darren"], ["Hipos", "Jaksel-Depok Area", "PT Dinamis Artha Sukses", "008422830", "Outlet 12", "Dian Febrina"], ["EagleEyes", "B2B GJR", "PT Indoraya Sukses Sejati", "005694372", "Outlet 13", "Aries Widhiarto"], ["Hipos", "Jaktim Area", "PT Indoraya Sukses Sejati", "004479635", "Outlet 14", "Ibnu Farras"], ["Hipos", "Jakbar Area", "PT Solusi Arta Jaya", "002472372", "Outlet 15", "Abdul Hafiz"], ["Hipos", "Bogor Area", "PT Dinamis Artha Sukses", "008488468", "Outlet 16", "Erwin Adimas"], ["Hipos", "Jaksel-Depok Area", "PT Triputra Megah Perkasa", "001508048", "Outlet 17", "Nabilah Putri"], ["Hipos", "Bogor Area", "PT Solusi Arta Jaya", "001681985", "Outlet 18", "Ibnu Farras"], ["EagleEyes", "Tangerang Area", "PT Indoraya Sukses Sejati", "002040252", "Outlet 19", "Georgius Darren"], ["EagleEyes", "Banten Area", "PT Dinamis Artha Sukses", "007089698", "Outlet 20", "Georgius Darren"], ["Hipos", "B2B GJR", "PT Trimulya Jaya Sejahtera", "006309714", "Outlet 21", "Georgius Darren"], ["Hipos", "B2B GJR", "PT Indoraya Sukses Sejati", "001406959", "Outlet 22", "Subiyanto"], ["EagleEyes", "Banten Area", "PT Triputra Megah Perkasa", "008813886", "Outlet 23", "Robby Abriyan"], ["Hipos", "Jakbar Area", "PT Solusi Arta Jaya", "009279117", "Outlet 24", "Dian Febrina"], ["Hipos", "Bekasi Area", "PT Balina Agung Perkasa", "006088777", "Outlet 25", "Subiyanto"], ["EagleEyes", "Bogor Area", "PT Dinamis Artha Sukses", "006361138", "Outlet 26", "Iwan Dwiarsono"], ["Hipos", "Banten Area", "PT Multi Rasa Citra Sejati", "007571390", "Outlet 27", "Robby Abriyan"], ["EagleEyes", "Bogor Area", "PT Solusi Arta Jaya", "002086039", "Outlet 28", "Nabilah Putri"], ["EagleEyes", "Tangerang Area", "PT Dinamis Artha Sukses", "003695970", "Outlet 29", "Ibnu Farras"]];
+let D={hoa:HOA,sm:SM,ee:EE,at:AT,be:BE,bj:BJ};
+let STD=JSON.parse(JSON.stringify(STD0));
+let TAB=0, p3=1, p4=1, PP=15, pill='All';
+const $=id=>document.getElementById(id);
+const eeM={}; function bee(){for(const k in eeM)delete eeM[k];D.ee.forEach(e=>eeM[e[0]]=e[1]);}
+const nEE=a=>(D.at[a]||0)-(eeM[a]||0);
+const WD=()=>{let v=+$('wd').value;return v>0?v:22;};
+function gSTD(){for(const t in STD){let a=$('s_'+t+'_ac'),e=$('s_'+t+'_ec'),o=$('s_'+t+'_out'),h=$('s_'+t+'_th');if(a)STD[t]=[+a.value,+e.value,+o.value,+h.value];}}
+function pct(x){return (x*100).toFixed(1)+'%';}
+function cls(v,min){return v>=min?'ok':'bad';}
+function fSM(){let a=$('fArea').value,h=$('fHoA').value,d=$('fDist').value,msr=$('fMSR').checked;
+ return D.sm.filter(s=>(!a||s[4]==a)&&(!h||s[3]==h));}
+function status(s){let t=s[2],p=s[8]||1,ac=s[9],ec=s[10],ach=s[7];let acP=ac/p,ecP=ec/p,th=(STD[t]||[0,0,0,75])[3];
+ if(acP<0.85||ecP*100<th-10||ach<0.2)return['Critical','sc','🚨 URGENT: cek %AC/%EC/OA. 1-on-1 coaching + JP review.'];
+ if(acP<0.95||ecP*100<th||ach<0.4)return['Warning','sw','⚠️ Monitor KPI di bawah target. Weekly check-in.'];
+ return['On Track','sg','✅ Good performance'];}
+
+let chM,ch3,ch4;
+function renderT1(){
+ let sm=fSM();
+ let tSal=0,tPlan=0,tAC=0,tEC=0;
+ D.hoa.forEach(h=>{tSal+=h[2];tPlan+=h[5];tAC+=h[6];tEC+=h[8];});
+ let acP=tPlan?tAC/tPlan:0, ecP=tPlan?tEC/tPlan:0;
+ let avgAC=(tSal*WD())?tAC/(tSal*WD()):0, avgEC=(tSal*WD())?tEC/(tSal*WD()):0;
+ let eeTot=0,neeTot=0;Object.keys(D.at).forEach(a=>{eeTot+=(eeM[a]||0);neeTot+=nEE(a);});
+ $('kp').innerHTML=[
+  ['Total Salesman MSR',tSal,''],
+  ['% Actual Call',pct(acP),'min 95%'],
+  ['Avg AC/SM/Day',avgAC.toFixed(1),'min 15'],
+  ['% Effective Call',pct(ecP),'min 80%'],
+  ['Avg EC/SM/Day',avgEC.toFixed(1),'min 12'],
+  ['Outlet Active EE',eeTot,''],
+  ['Outlet Active Non-EE',neeTot,'']
+ ].map(k=>`<div class=kpi><div class=l>${k[0]}</div><div class=v>${k[1]}</div><div class=t>${k[2]}</div></div>`).join('');
+ // detail table
+ let rows=D.hoa.map(h=>{let acP=h[5]?h[6]/h[5]:0,ecP=h[5]?h[8]/h[5]:0,aAC=(h[2]*WD())?h[6]/(h[2]*WD()):0,aEC=(h[2]*WD())?h[8]/(h[2]*WD()):0;
+   return `<tr><td>${h[0]}</td><td>${h[1]}</td><td>${h[2]}</td><td class=${cls(acP,.95)}>${pct(acP)}</td><td class=${cls(aAC,15)}>${aAC.toFixed(1)}</td><td class=${cls(ecP,.80)}>${pct(ecP)}</td><td class=${cls(aEC,12)}>${aEC.toFixed(1)}</td><td>${eeM[h[1]]||0}</td><td>${nEE(h[1])}</td></tr>`;}).join('');
+ $('t1').innerHTML='<tr><th>HoA</th><th>Area</th><th>Salesman</th><th>%AC</th><th>Avg AC/Day</th><th>%EC</th><th>Avg EC/Day</th><th>EE Active</th><th>Non-EE Active</th></tr>'+rows;
+ // chart
+ let labels=D.hoa.map(h=>h[0]);
+ let dAC=D.hoa.map(h=>h[5]?+(h[6]/h[5]*100).toFixed(1):0);
+ let dEC=D.hoa.map(h=>h[5]?+(h[8]/h[5]*100).toFixed(1):0);
+ if(chM)chM.destroy();
+ chM=new Chart($('cM'),{type:'bar',data:{labels,datasets:[{label:'% AC',data:dAC,backgroundColor:'#2b6cb0'},{label:'% EC',data:dEC,backgroundColor:'#3a9bd4'}]},options:{responsive:true,plugins:{legend:{position:'top'}}}});
+}
+
+function renderT2(){
+ let h=$('h2').value||D.hoa[0][0];
+ let hr=D.hoa.find(x=>x[0]==h)||D.hoa[0];
+ let area=hr[1];
+ $('pMSR').innerHTML=[['Jml Salesman',hr[2]],['Target CB Sunrise',hr[3]],['OA Actual',hr[4]],['Outlet Active Non-EE',nEE(area)]].map(r=>`<div class=r><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+ let acP=hr[5]?hr[6]/hr[5]:0,ecP=hr[5]?hr[8]/hr[5]:0;
+ $('pCE').innerHTML=[['Plan Call',hr[5]],['Actual Call',hr[6]],['Compliance %',pct(acP)],['Effective Call',hr[8]],['EC %',pct(ecP)]].map(r=>`<div class=r><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+ // salesman table
+ let q=($('smS').value||'').toLowerCase(),tf=$('tF').value;
+ let list=D.sm.filter(s=>s[3]==h);
+ let arr=list.map(s=>{let st=status(s);return {s,st};}).filter(o=>{
+   if(pill!='All'&&o.st[0]!=pill)return false;
+   if(tf&&o.s[2]!=tf)return false;
+   if(q&&!(o.s[1].toLowerCase().includes(q)||String(o.s[0]).toLowerCase().includes(q)))return false;
+   return true;});
+ let wd=WD();
+ let rows=arr.map(o=>{let s=o.s,st=o.st,p=s[8]||1;let pd=(s[8]/wd).toFixed(1),ad=(s[9]/wd).toFixed(1),ed=(s[10]/wd).toFixed(1),acP=s[9]/p,ecP=s[10]/p;
+   return `<tr><td>${s[0]}</td><td>${s[1]}</td><td>${s[2]}</td><td>${s[5]}</td><td>${s[6]}</td><td>${pct(s[7])}</td><td>${pd}</td><td>${ad}</td><td class=${cls(acP,.95)}>${pct(acP)}</td><td>${ed}</td><td class=${cls(ecP,.80)}>${pct(ecP)}</td><td><span class="stat ${st[1]}">${st[0]}</span></td><td style=font-size:11px>${st[2]}</td></tr>`;}).join('');
+ $('t2').innerHTML='<tr><th>Kode</th><th>Nama</th><th>Type</th><th>Tgt CB</th><th>OA</th><th>Ach%</th><th>Plan/Day</th><th>AC/Day</th><th>%AC</th><th>EC/Day</th><th>%EC</th><th>Status</th><th>Note</th></tr>'+(rows||'<tr><td colspan=13 style=text-align:center>Tidak ada data</td></tr>');
+ // coaching
+ let crit=list.map(s=>({s,st:status(s)})).filter(o=>o.st[0]!='On Track').sort((a,b)=>a.s[7]-b.s[7]).slice(0,3);
+ $('cch').innerHTML=crit.length?('<b>🎯 Rekomendasi Coaching Priority:</b><ol style=margin:8px_0_0_20px>'+crit.map(o=>`<li><b>${o.s[1]}</b> (${o.s[2]}) — Ach ${pct(o.s[7])}. ${o.st[2]}</li>`).join('')+'</ol>'):'<b>✅ Semua salesman on track.</b>';
+}
+
+function distList(rows,ci){let s=new Set();rows.forEach(r=>s.add(r[ci]));return [...s].sort();}
+function renderT3(){
+ let d=$('d3').value,q=($('s3').value||'').toLowerCase(),gb=document.querySelector('input[name=g3]:checked').value;
+ let rows=D.be.filter(r=>(!d||r[2]==d)&&(!q||(r[4]+r[2]+r[1]).toLowerCase().includes(q)));
+ $('k3a').textContent=rows.length;$('k3b').textContent=D.be.length;$('k3c').textContent=D.be.length?Math.round(rows.length/D.be.length*100)+'%':'0%';
+ // chart by group
+ let key=gb=='Distributor'?2:1;let agg={};rows.forEach(r=>agg[r[key]]=(agg[r[key]]||0)+1);
+ let L=Object.keys(agg),V=L.map(k=>agg[k]);
+ if(ch3)ch3.destroy();ch3=new Chart($('c3'),{type:'bar',data:{labels:L,datasets:[{label:'Outlet belum EE',data:V,backgroundColor:'#2b6cb0'}]},options:{responsive:true}});
+ // pagination
+ let tp=Math.max(1,Math.ceil(rows.length/PP));if(p3>tp)p3=tp;let sl=rows.slice((p3-1)*PP,p3*PP);
+ let body=sl.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+ $('t3').innerHTML='<tr><th>Region</th><th>Area</th><th>Distributor</th><th>Kode</th><th>Outlet</th><th>Salesman</th><th>HoA</th></tr>'+(body||'<tr><td colspan=7 style=text-align:center>Tidak ada data</td></tr>');
+ let a=rows.length?(p3-1)*PP+1:0,b=Math.min(p3*PP,rows.length);
+ $('pg3').innerHTML=`<span>Menampilkan ${a}-${b} dari ${rows.length} outlet</span><button onclick="p3--;renderT3()" ${p3<=1?'disabled':''}>Prev</button><span>Halaman ${p3} / ${tp}</span><button onclick="p3++;renderT3()" ${p3>=tp?'disabled':''}>Next</button>`;
+ window._r3=rows;
+}
+function renderT4(){
+ let d=$('d4').value,q=($('s4').value||'').toLowerCase(),gb=document.querySelector('input[name=g4]:checked').value;
+ let rows=D.bj.filter(r=>(!d||r[2]==d)&&(!q||(r[4]+r[2]+r[1]).toLowerCase().includes(q)));
+ let ee=rows.filter(r=>/eagle/i.test(r[0])).length,hp=rows.filter(r=>/hipos/i.test(r[0])).length;
+ $('k4a').textContent=ee;$('k4b').textContent=hp;$('k4c').textContent=rows.length;
+ let key=gb=='Distributor'?2:1;let ae={},ah={};rows.forEach(r=>{let k=r[key];if(/eagle/i.test(r[0]))ae[k]=(ae[k]||0)+1;else ah[k]=(ah[k]||0)+1;});
+ let L=[...new Set([...Object.keys(ae),...Object.keys(ah)])];
+ if(ch4)ch4.destroy();ch4=new Chart($('c4'),{type:'bar',data:{labels:L,datasets:[{label:'EE',data:L.map(k=>ae[k]||0),backgroundColor:'#2b6cb0'},{label:'Hipos',data:L.map(k=>ah[k]||0),backgroundColor:'#3a9bd4'}]},options:{responsive:true}});
+ let tp=Math.max(1,Math.ceil(rows.length/PP));if(p4>tp)p4=tp;let sl=rows.slice((p4-1)*PP,p4*PP);
+ let body=sl.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>Assign ke JP ${r[5]}</td></tr>`).join('');
+ $('t4').innerHTML='<tr><th>Source</th><th>Area</th><th>Distributor</th><th>Kode</th><th>Outlet</th><th>Suggested HoA</th><th>Action</th></tr>'+(body||'<tr><td colspan=7 style=text-align:center>Tidak ada data</td></tr>');
+ let a=rows.length?(p4-1)*PP+1:0,b=Math.min(p4*PP,rows.length);
+ $('pg4').innerHTML=`<span>Menampilkan ${a}-${b} dari ${rows.length} outlet</span><button onclick="p4--;renderT4()" ${p4<=1?'disabled':''}>Prev</button><span>Halaman ${p4} / ${tp}</span><button onclick="p4++;renderT4()" ${p4>=tp?'disabled':''}>Next</button>`;
+ window._r4=rows;
+}
+function csvDL(head,rows,fn){let c=[head.join(',')].concat(rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(','))).join('\n');let b=new Blob([c],{type:'text/csv'});let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click();}
+function eSM(){let h=$('h2').value;let rows=D.sm.filter(s=>s[3]==h).map(s=>{let st=status(s);return [s[0],s[1],s[2],s[5],s[6],s[7],s[8],s[9],(s[9]/(s[8]||1)).toFixed(3),s[10],(s[10]/(s[8]||1)).toFixed(3),st[0],st[2]];});csvDL(['Kode','Nama','Type','TgtCB','OA','Ach','Plan','AC','pAC','EC','pEC','Status','Note'],rows,'salesman.csv');}
+function e3(){csvDL(['Region','Area','Distributor','Kode','Outlet','Salesman','HoA'],(window._r3||[]).map(r=>r.slice(0,7)),'outlet_belum_EE.csv');}
+function e4(){csvDL(['Source','Area','Distributor','Kode','Outlet','SuggestedHoA'],(window._r4||[]).map(r=>r.slice(0,6)),'EE_Hipos_belum_JP.csv');}
+
+function sw(n){TAB=n;['t1w','t2w','t3w','t4w'].forEach((id,i)=>$(id).classList.toggle('hide',i!=n));document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i==n));
+ if(n==0)renderT1();if(n==1)renderT2();if(n==2)renderT3();if(n==3)renderT4();}
+function toggleStd(){let w=$('stdTableWrap'),c=$('cv');let hid=w.classList.toggle('hide');c.textContent=hid?'▶':'▼';}
+
+function fillSelects(){
+ let areas=[...new Set(D.hoa.map(h=>h[1]))].sort();
+ let hoas=D.hoa.map(h=>h[0]);
+ let dists=[...new Set([...D.be.map(r=>r[2]),...D.bj.map(r=>r[2])])].sort();
+ $('fArea').innerHTML='<option value="">Semua Area</option>'+areas.map(a=>`<option>${a}</option>`).join('');
+ $('fHoA').innerHTML='<option value="">Semua HoA</option>'+hoas.map(h=>`<option>${h}</option>`).join('');
+ $('fDist').innerHTML='<option value="">Semua Distributor</option>'+dists.map(d=>`<option>${d}</option>`).join('');
+ $('h2').innerHTML=hoas.map(h=>`<option>${h}</option>`).join('');
+ let types=[...new Set(D.sm.map(s=>s[2]))].sort();
+ $('tF').innerHTML='<option value="">Semua Type</option>'+types.map(t=>`<option>${t}</option>`).join('');
+ $('d3').innerHTML='<option value="">Semua Distributor</option>'+dists.map(d=>`<option>${d}</option>`).join('');
+ $('d4').innerHTML='<option value="">Semua Distributor</option>'+dists.map(d=>`<option>${d}</option>`).join('');
+}
+function applyData(d){
+ D.hoa=d.hoa||D.hoa;D.sm=d.salesman||D.sm;D.ee=d.ee||D.ee;D.at=d.at||D.at;D.be=d.belumEE||D.be;D.bj=d.belumJP||D.bj;
+ bee();fillSelects();sw(TAB);
+}
+function note(cls,msg){let n=$('note');n.className='note '+cls;n.textContent=msg;}
+
+function tryFetch(){
+ fetch('data.json?t='+Date.now()).then(r=>{if(!r.ok)throw 0;return r.json();}).then(d=>{applyData(d);note('ok','✅ Data ter-load dari data.json — '+(d.label||''));}).catch(()=>{note('gr','⚠️ data.json tidak ditemukan — pakai sample.');});
+}
+function loadSample(){D={hoa:HOA,sm:SM,ee:EE,at:AT,be:BE,bj:BJ};bee();fillSelects();sw(TAB);note('gr','Sample data dimuat.');}
+
+function handleFile(f){
+ let rd=new FileReader();rd.onload=e=>{try{
+  let wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+  let d=parseWB(wb);applyData(d);note('ok',`✅ Data dimuat: ${d.hoa.length} HoA, ${d.salesman.length} salesman, ${d.belumEE.length} belum EE, ${d.belumJP.length} belum JP.`);
+ }catch(err){note('bad','❌ Gagal baca file: '+err+'. Cek nama sheet & header.');}};
+ rd.readAsArrayBuffer(f);
+}
+function findHdr(rows,keys){for(let i=0;i<rows.length;i++){let c=rows[i].map(x=>String(x||'').toLowerCase());if(keys.every(k=>c.some(v=>v.includes(k))))return i;}return -1;}
+function cmap(hdr,pats){let m={};for(let key in pats){for(let j=0;j<hdr.length;j++){if(new RegExp(pats[key],'i').test(String(hdr[j]||''))){m[key]=j;break;}}}return m;}
+function norm(s){return String(s||'').replace(/\s+/g,'').toUpperCase();}
+function parseWB(wb){
+ let g=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''}):null;
+ let out={hoa:[],salesman:[],ee:[],at:{},belumEE:[],belumJP:[]};
+ // summary
+ let r=g('Dashboard Summary');if(r){let hi=findHdr(r,['head of area']);let m=cmap(r[hi],{hoa:'head of area',area:'sales area',sal:'jml salesman',tcb:'target cb',oa:'oa actual',plan:'plan call',ac:'actual call',acp:'compliance',ec:'effective call',ecp:'eff call',jp:'jp outlet'});for(let i=hi+1;i<r.length;i++){let x=r[i];let nm=x[m.hoa];if(!nm||String(nm).toLowerCase().includes('total'))continue;let gv=k=>m[k]!=null&&x[m[k]]!==''?x[m[k]]:0;out.hoa.push([nm,gv('area'),+gv('sal'),+gv('tcb'),+gv('oa'),+gv('plan'),+gv('ac'),+gv('acp'),+gv('ec'),+gv('ecp'),+gv('jp')]);}}
+ // salesman
+ r=g('Salesman Detail');if(r){let hi=findHdr(r,['uniquecode']);if(hi<0)hi=findHdr(r,['salesman name']);let m=cmap(r[hi],{code:'uniquecode|kode',name:'salesman name|nama',type:'type',hoa:'head of area',area:'sales area',tcb:'target cb',oa:'oa actual',ach:'ach',plan:'plan call',ac:'actual call',ec:'effective call'});for(let i=hi+1;i<r.length;i++){let x=r[i];if(!x[m.code])continue;let gv=k=>m[k]!=null&&x[m[k]]!==''?x[m[k]]:0;out.salesman.push([x[m.code],gv('name'),gv('type'),gv('hoa'),gv('area'),+gv('tcb'),+gv('oa'),+gv('ach'),+gv('plan'),+gv('ac'),+gv('ec')]);}}
+ // JP
+ let jpc=new Set();r=g('JP');if(r){let hi=findHdr(r,['outlet code']);let m=cmap(r[hi],{region:'region',area:'sales area',dist:'shipto|distributor',code:'outlet code',outlet:'outlet-name|outlet name',sls:'slsman',hoa:'hoa',ee:'^ee$|eagle'});for(let i=hi+1;i<r.length;i++){let x=r[i];if(!x[m.code])continue;jpc.add(norm(x[m.code]));let ee=String(m.ee!=null?x[m.ee]:'').toLowerCase();let gv=k=>m[k]!=null&&x[m[k]]!==''?x[m[k]]:'';if(!ee.includes('eagle'))out.belumEE.push([gv('region')||'Grtr Jakarta',gv('area'),gv('dist'),x[m.code],gv('outlet'),gv('sls'),gv('hoa'),0]);}}
+ // registrasi
+ r=g('Registrasi per Area');if(r){let hi=findHdr(r,['outlet active ee']);let m=cmap(r[hi],{area:'sales area',yd:'outlet ytd',aee:'outlet active ee',atot:'outlet active total'});for(let i=hi+1;i<r.length;i++){let x=r[i];let a=x[m.area];if(!a)break;if(String(a).toLowerCase().includes('total'))continue;let gv=k=>m[k]!=null&&x[m[k]]!==''?x[m[k]]:0;out.ee.push([a,+gv('aee'),+gv('yd')]);out.at[a]=+gv('atot');}}
+ // EE Hipos List
+ let a2h={};out.hoa.forEach(h=>{if(!a2h[h[1]])a2h[h[1]]=h[0];});
+ r=g('EE Hipos List');if(r){let hi=findHdr(r,['source','outlet code']);if(hi>=0){let m=cmap(r[hi],{src:'source',area:'sales area',dist:'shipto|distributor',code:'outlet code',name:'outlet-name|outlet name|nama'});for(let i=hi+1;i<r.length;i++){let x=r[i];if(!x[m.code])continue;if(jpc.has(norm(x[m.code])))continue;let gv=k=>m[k]!=null&&x[m[k]]!==''?x[m[k]]:'';let ar=gv('area');out.belumJP.push([gv('src'),ar,gv('dist'),x[m.code],gv('name'),a2h[ar]||'-']);}}}
+ if(!out.belumJP.length)out.belumJP=BJ;
+ return out;
+}
+
+window.onload=function(){bee();fillSelects();
+ $('wd').addEventListener('input',()=>{if(TAB==0)renderT1();if(TAB==1)renderT2();});
+ ['fArea','fHoA','fDist','fMSR'].forEach(id=>$(id).addEventListener('change',()=>sw(TAB)));
+ $('h2').addEventListener('change',renderT2);
+ ['tF','smS'].forEach(id=>$(id).addEventListener('input',renderT2));
+ ['d3','s3'].forEach(id=>$(id).addEventListener('input',()=>{p3=1;renderT3();}));
+ document.querySelectorAll('input[name=g3]').forEach(x=>x.addEventListener('change',()=>{p3=1;renderT3();}));
+ ['d4','s4'].forEach(id=>$(id).addEventListener('input',()=>{p4=1;renderT4();}));
+ document.querySelectorAll('input[name=g4]').forEach(x=>x.addEventListener('change',()=>{p4=1;renderT4();}));
+ document.querySelectorAll('.pill').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));b.classList.add('on');pill=b.dataset.p;renderT2();}));
+ sw(0);tryFetch();
+};
+</script>
+</body></html>
