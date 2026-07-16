@@ -2178,54 +2178,54 @@
   "ee": [
     [
       "B2B GJR",
-      448,
+      465,
       1076
     ],
     [
       "Banten Area",
-      1110,
+      1117,
       3640
     ],
     [
       "Bekasi Area",
-      1926,
+      1966,
       3569
     ],
     [
       "Bogor Area",
-      1487,
+      1929,
       5599
     ],
     [
       "Jakbar Area",
-      2784,
+      2920,
       4251
     ],
     [
       "Jaksel-Depok Area",
-      4404,
+      4434,
       10521
     ],
     [
       "Jaktim Area",
-      2168,
+      2621,
       3762
     ],
     [
       "Tangerang Area",
-      3257,
+      3325,
       4859
     ]
   ],
   "at": {
-    "B2B GJR": 476,
-    "Banten Area": 1163,
-    "Bekasi Area": 2251,
-    "Bogor Area": 1555,
-    "Jakbar Area": 3057,
-    "Jaksel-Depok Area": 4589,
-    "Jaktim Area": 2679,
-    "Tangerang Area": 3472
+    "B2B GJR": 490,
+    "Banten Area": 1179,
+    "Bekasi Area": 2281,
+    "Bogor Area": 2028,
+    "Jakbar Area": 3170,
+    "Jaksel-Depok Area": 4627,
+    "Jaktim Area": 3397,
+    "Tangerang Area": 3535
   },
   "belumEE": [
     [
